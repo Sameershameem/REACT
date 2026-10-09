@@ -1,309 +1,776 @@
-import React from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
-export default function Home() {
-  const projects = [
-    {
-      num: "01",
-      title: "Digital Universe",
-      type: "WEB DEVELOPMENT",
-      description: "Beautiful digital experiences built with modern technology.",
-      color: "from-violet-500/30 via-purple-900/10 to-transparent",
-    },
-    {
-      num: "02",
-      title: "Obsidian",
-      type: "UI / UX DESIGN",
-      description: "Minimal interfaces where elegance meets functionality.",
-      color: "from-indigo-500/30 via-slate-900/10 to-transparent",
-    },
-    {
-      num: "03",
-      title: "Beyond Orbit",
-      type: "CREATIVE DEVELOPMENT",
-      description: "Exploring the boundaries of design and interaction.",
-      color: "from-fuchsia-500/20 via-violet-900/10 to-transparent",
-    },
-  ];
+/* ------------------------------------------------------------------ */
+/*  DATA                                                               */
+/* ------------------------------------------------------------------ */
 
-  const skills = ["React", "JavaScript", "Tailwind CSS", "UI / UX", "Creative Coding"];
+const u = (id, w = 2000) =>
+  `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
+
+const IMAGES = {
+  gateway: u("photo-1570168007204-dfb528c6958f"),
+  marineDrive: u("photo-1529253355930-ddbe423a2ac7"),
+  skyline: u("photo-1566552881560-0be862a7c445"),
+  heritage: u("photo-1562979314-bee7453e911c", 1200),
+  nightlife: u("photo-1567157577867-05ccb1388e66", 1200),
+  coastal: u("photo-1595658658481-d53d3f999875", 1200),
+  food: u("photo-1606491956689-2ea866880c84", 1200),
+  panorama: u("photo-1595658658481-d53d3f999875", 2400),
+};
+
+const SLIDE_INTERVAL = 6500;
+
+const NAV_LINKS = [
+  { label: "Tours", href: "#tours" },
+  { label: "Story", href: "#story" },
+  { label: "Contact", href: "#contact" },
+];
+
+const SLIDES = [
+  {
+    image: IMAGES.gateway,
+    alt: "The Gateway of India arch beside the Arabian Sea at dusk in Mumbai",
+    location: "Colaba, South Mumbai",
+    lines: ["DISCOVER", "MUMBAI"],
+    coords: "18.9220° N / 72.8347° E",
+    position: "center 55%",
+  },
+  {
+    image: IMAGES.marineDrive,
+    alt: "Marine Drive's curving promenade and skyline glowing along the Queen's Necklace in Mumbai",
+    location: "Marine Drive, Nariman Point",
+    lines: ["WHERE THE", "SEA GLOWS"],
+    coords: "18.9442° N / 72.8230° E",
+    position: "center 60%",
+  },
+  {
+    image: IMAGES.skyline,
+    alt: "Mumbai's waterfront skyline under a moody evening sky",
+    location: "Worli Sea Face",
+    lines: ["A CITY", "NEVER ASLEEP"],
+    coords: "19.0176° N / 72.8153° E",
+    position: "center 50%",
+  },
+];
+
+const TOURS = [
+  {
+    id: "01",
+    title: "Heritage Walks",
+    tag: "Fort & Colaba · 3 hrs",
+    blurb:
+      "Gothic arches, Art Deco facades and century-old cafés, read street by street with a local historian.",
+    image: IMAGES.heritage,
+    alt: "Victorian Gothic heritage architecture in South Mumbai",
+  },
+  {
+    id: "02",
+    title: "City Nightlife",
+    tag: "Bandra & Lower Parel · Evening",
+    blurb:
+      "Rooftop sundowners, hidden jazz rooms and late-night chai stalls once the traffic finally thins out.",
+    image: IMAGES.nightlife,
+    alt: "Mumbai city lights glowing at night",
+  },
+  {
+    id: "03",
+    title: "Coastal Escapes",
+    tag: "Marine Drive & Elephanta · Full day",
+    blurb:
+      "Salt air, harbour ferries and island caves, with golden hour saved for the Queen's Necklace.",
+    image: IMAGES.coastal,
+    alt: "Mumbai's coastline and sea at golden hour",
+  },
+  {
+    id: "04",
+    title: "Local Food Trails",
+    tag: "Mohammed Ali Road · 4 hrs",
+    blurb:
+      "Vada pav at the counter, kebabs off the grill and Irani chai to finish, eaten the way Mumbaikars do.",
+    image: IMAGES.food,
+    alt: "Plates of Indian street food served at a Mumbai market",
+  },
+];
+
+/* ------------------------------------------------------------------ */
+/*  CUSTOM CSS                                                         */
+/* ------------------------------------------------------------------ */
+
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=Oswald:wght@400;500;600;700&display=swap');
+
+:root {
+  --charcoal: #0b0d10;
+  --slate: #141a21;
+  --blue-grey: #1e2832;
+  --muted: #d9dde2;
+  --orange: #c8622b;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--charcoal); }
+
+.font-display { font-family: 'Oswald', sans-serif; }
+.font-body { font-family: 'DM Sans', sans-serif; }
+
+/* Ken Burns */
+.kb-layer { transform: scale(1.12); }
+.kb-active { animation: kenburns 9s ease-out both; }
+@keyframes kenburns {
+  from { transform: scale(1.02) translate3d(0, 0, 0); }
+  to   { transform: scale(1.12) translate3d(-1%, -0.8%, 0); }
+}
+
+/* Staggered headline reveal */
+.mask-line { display: block; overflow: hidden; }
+.mask-line > span {
+  display: block;
+  transform: translateY(112%);
+  animation: lineUp 1.1s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes lineUp { to { transform: translateY(0); } }
+
+.fade-rise {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: fadeRise 1s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes fadeRise { to { opacity: 1; transform: translateY(0); } }
+
+/* Slide progress */
+.progress-fill {
+  transform-origin: left;
+  transform: scaleX(0);
+  animation: progress ${SLIDE_INTERVAL}ms linear forwards;
+}
+@keyframes progress { to { transform: scaleX(1); } }
+
+/* Scroll prompt */
+.scroll-line { animation: scrollLine 2.4s ease-in-out infinite; }
+@keyframes scrollLine {
+  0%   { transform: scaleY(0); transform-origin: top; opacity: 1; }
+  50%  { transform: scaleY(1); transform-origin: top; }
+  51%  { transform-origin: bottom; }
+  100% { transform: scaleY(0); transform-origin: bottom; opacity: .4; }
+}
+
+/* Scroll reveal */
+.reveal {
+  opacity: 0;
+  transform: translateY(32px);
+  transition: opacity 1.1s cubic-bezier(.2,.8,.2,1), transform 1.1s cubic-bezier(.2,.8,.2,1);
+}
+.reveal.is-in { opacity: 1; transform: none; }
+
+/* Story panorama drift */
+.drift { animation: drift 40s ease-in-out infinite alternate; }
+@keyframes drift {
+  from { transform: scale(1.15) translateX(-2.5%); }
+  to   { transform: scale(1.15) translateX(2.5%); }
+}
+
+.outline-text {
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(217, 221, 226, 0.75);
+}
+
+/* Contact ambient glow */
+.ambient { animation: ambient 14s ease-in-out infinite alternate; }
+@keyframes ambient {
+  from { transform: translate3d(-3%, 0, 0) scale(1); }
+  to   { transform: translate3d(3%, -2%, 0) scale(1.08); }
+}
+
+.film-grain {
+  background-image: radial-gradient(rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: 3px 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+  }
+  .reveal { opacity: 1; transform: none; }
+}
+`;
+
+/* ------------------------------------------------------------------ */
+/*  HOOKS & HELPERS                                                    */
+/* ------------------------------------------------------------------ */
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return reduced;
+}
+
+function useInView(options = { threshold: 0.15 }) {
+  const ref = useRef(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    if (typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        observer.disconnect();
+      }
+    }, options);
+    observer.observe(node);
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return [ref, inView];
+}
+
+function Reveal({ children, delay = 0, className = "", as: Tag = "div" }) {
+  const [ref, inView] = useInView();
+  return (
+    <Tag
+      ref={ref}
+      className={`reveal ${inView ? "is-in" : ""} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+/** Image that quietly disappears if the URL fails, leaving the dark backdrop. */
+function SmartImg({ src, alt, className = "", style, loading = "lazy" }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading={loading}
+      decoding="async"
+      onError={() => setFailed(true)}
+      className={className}
+      style={style}
+    />
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  NAVIGATION                                                         */
+/* ------------------------------------------------------------------ */
+
+function Navigation() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 40);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#050507] text-white selection:bg-violet-400/30 selection:text-white">
+    <header
+      className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
+        scrolled || open
+          ? "bg-[#0b0d10]/85 backdrop-blur-md border-b border-white/5"
+          : "bg-transparent"
+      }`}
+    >
+      <nav
+        aria-label="Primary"
+        className="mx-auto flex h-20 max-w-[1500px] items-center justify-between px-6 md:px-12"
+      >
+        <a href="#top" className="flex items-center gap-3 group" aria-label="ROAM home">
+          <span className="h-2 w-2 rounded-full bg-[#c8622b]" />
+          <span className="font-display text-lg font-medium tracking-[0.35em] text-[#d9dde2]">
+            ROAM
+          </span>
+        </a>
 
-      {/* GALAXY BACKGROUND */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,#211333_0%,#0b0910_35%,#050507_75%)]" />
+        <ul className="hidden items-center gap-10 md:flex">
+          {NAV_LINKS.map((l) => (
+            <li key={l.href}>
+              <a
+                href={l.href}
+                className="font-body text-[11px] uppercase tracking-[0.28em] text-[#d9dde2]/70 transition-colors duration-300 hover:text-[#d9dde2]"
+              >
+                {l.label}
+              </a>
+            </li>
+          ))}
+        </ul>
 
-        <div className="absolute -right-40 top-40 h-[500px] w-[500px] rounded-full bg-violet-700/10 blur-[130px]" />
+        <div className="flex items-center gap-4">
+          <a
+            href="#tours"
+            className="hidden rounded-full border border-[#d9dde2]/30 px-6 py-2.5 font-body text-[11px] uppercase tracking-[0.28em] text-[#d9dde2] transition-all duration-500 hover:border-[#c8622b] hover:bg-[#c8622b] sm:inline-block"
+          >
+            Discover
+          </a>
+          <button
+            type="button"
+            className="flex h-10 w-10 flex-col items-center justify-center gap-[6px] md:hidden"
+            aria-label={open ? "Close menu" : "Open menu"}
+            aria-expanded={open}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span
+              className={`h-px w-6 bg-[#d9dde2] transition-transform duration-300 ${
+                open ? "translate-y-[3.5px] rotate-45" : ""
+              }`}
+            />
+            <span
+              className={`h-px w-6 bg-[#d9dde2] transition-transform duration-300 ${
+                open ? "-translate-y-[3.5px] -rotate-45" : ""
+              }`}
+            />
+          </button>
+        </div>
+      </nav>
 
-        <div className="absolute -left-40 top-[650px] h-[400px] w-[400px] rounded-full bg-indigo-600/10 blur-[120px]" />
+      {open && (
+        <div className="border-t border-white/5 px-6 pb-8 pt-4 md:hidden">
+          <ul className="flex flex-col gap-5">
+            {NAV_LINKS.map((l) => (
+              <li key={l.href}>
+                <a
+                  href={l.href}
+                  onClick={() => setOpen(false)}
+                  className="font-display text-3xl uppercase tracking-wide text-[#d9dde2]"
+                >
+                  {l.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <a
+                href="#tours"
+                onClick={() => setOpen(false)}
+                className="mt-2 inline-block rounded-full bg-[#c8622b] px-7 py-3 font-body text-[11px] uppercase tracking-[0.28em] text-white"
+              >
+                Discover
+              </a>
+            </li>
+          </ul>
+        </div>
+      )}
+    </header>
+  );
+}
 
-        {/* STARS */}
-        {Array.from({ length: 90 }).map((_, i) => (
-          <span
-            key={i}
-            className="absolute animate-pulse rounded-full bg-white"
-            style={{
-              left: `${(i * 37.17) % 100}%`,
-              top: `${(i * 61.73) % 100}%`,
-              width: i % 9 === 0 ? "2px" : "1px",
-              height: i % 9 === 0 ? "2px" : "1px",
-              opacity: 0.2 + ((i * 13) % 7) / 10,
-              animationDelay: `${(i % 8) * 0.4}s`,
-              animationDuration: `${3 + (i % 5)}s`,
-            }}
-          />
+/* ------------------------------------------------------------------ */
+/*  HERO                                                               */
+/* ------------------------------------------------------------------ */
+
+function Hero() {
+  const [active, setActive] = useState(0);
+  const reduced = usePrefersReducedMotion();
+
+  // One timeout per slide; re-armed whenever `active` changes (auto or manual),
+  // always cleaned up, so progress bar and slide change stay in sync.
+  useEffect(() => {
+    if (reduced) return undefined;
+    const id = setTimeout(() => {
+      setActive((i) => (i + 1) % SLIDES.length);
+    }, SLIDE_INTERVAL);
+    return () => clearTimeout(id);
+  }, [active, reduced]);
+
+  const goTo = useCallback((i) => setActive(i), []);
+  const slide = SLIDES[active];
+
+  return (
+    <section id="top" className="relative h-screen min-h-[640px] w-full overflow-hidden bg-[#0b0d10]">
+      {/* Slides */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#141a21] to-[#0b0d10]">
+        {SLIDES.map((s, i) => (
+          <div
+            key={s.image + i}
+            aria-hidden={i !== active}
+            className={`absolute inset-0 transition-opacity duration-[1600ms] ease-in-out ${
+              i === active ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <SmartImg
+              src={s.image}
+              alt={s.alt}
+              loading={i === 0 ? "eager" : "lazy"}
+              className={`h-full w-full object-cover ${
+                i === active && !reduced ? "kb-active" : "kb-layer"
+              }`}
+              style={{ objectPosition: s.position }}
+            />
+          </div>
         ))}
-
-        {/* COSMIC PLANET */}
-        <div className="absolute -right-48 top-48 h-[420px] w-[420px] rounded-full border border-violet-300/10 bg-[radial-gradient(circle_at_30%_25%,#6d4b8c_0%,#30203e_15%,#100d19_48%,#050507_72%)] opacity-70 shadow-[0_0_100px_rgba(139,92,246,0.12)] sm:-right-32 sm:h-[540px] sm:w-[540px]" />
-
-        <div className="absolute -right-36 top-[390px] h-40 w-[600px] rotate-[-25deg] rounded-[50%] border border-violet-200/10 sm:-right-20" />
-
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050507]" />
       </div>
 
-      {/* NAVBAR */}
-      <header className="relative z-10 mx-auto flex max-w-7xl items-center justify-between px-6 py-6 sm:px-10 lg:px-16">
-        <a href="#home" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full border border-violet-300/40 text-lg text-violet-200">
-            S.
-          </div>
-          <span className="text-xs font-medium tracking-[0.2em] sm:text-sm">
-            SAMEER SHAMEEM
-          </span>
-        </a>
+      {/* Overlays */}
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0b0d10] via-[#0b0d10]/35 to-[#0b0d10]/55" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0b0d10]/80 via-transparent to-transparent" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at 20% 100%, rgba(200,98,43,.14), transparent 55%)" }}
+      />
+      <div className="film-grain pointer-events-none absolute inset-0 opacity-60" />
 
-        <nav className="hidden items-center gap-8 text-xs text-white/60 md:flex">
-          <a href="#home" className="transition hover:text-violet-300">Home</a>
-          <a href="#about" className="transition hover:text-violet-300">About</a>
-          <a href="#work" className="transition hover:text-violet-300">Projects</a>
-          <a href="#contact" className="transition hover:text-violet-300">Contact</a>
-        </nav>
-
-        <a
-          href="#contact"
-          className="rounded-full border border-white/15 px-4 py-2.5 text-xs transition hover:border-violet-300/60 hover:bg-violet-400/10"
-        >
-          Let's talk ↗
-        </a>
-      </header>
-
-      {/* HERO */}
-      <section
-        id="home"
-        className="relative z-10 mx-auto flex min-h-[82vh] max-w-7xl flex-col justify-center px-6 py-24 sm:px-10 lg:px-16"
-      >
-        <div className="mb-8 flex items-center gap-3">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-violet-300 shadow-[0_0_12px_#a78bfa]" />
-          <span className="text-[10px] uppercase tracking-[0.25em] text-white/55 sm:text-xs">
-            Developer · Designer · Dreamer
-          </span>
-        </div>
-
-        <p className="mb-5 text-sm text-white/60 sm:text-base">
-          Hello, I'm Sameer Shameem.
-        </p>
-
-        <h1 className="max-w-5xl text-6xl font-light leading-[0.95] tracking-[-0.07em] sm:text-8xl lg:text-[112px]">
-          Building
-          <br />
-          <span className="bg-gradient-to-r from-violet-200 via-purple-300 to-indigo-400 bg-clip-text text-transparent">
-            beyond
-          </span>
-          <br />
-          the ordinary<span className="text-violet-300">.</span>
-        </h1>
-
-        <div className="mt-9 flex max-w-2xl flex-col gap-7 sm:flex-row sm:items-center sm:justify-between">
-          <p className="max-w-md text-sm leading-7 text-white/50 sm:text-base">
-            I turn ideas into immersive digital experiences through thoughtful
-            design, clean code, and an obsession with the details.
+      {/* Content */}
+      <div className="relative z-10 mx-auto flex h-full max-w-[1500px] flex-col justify-end px-6 pb-24 md:px-12 md:pb-20">
+        <div key={active} className="max-w-5xl">
+          <p
+            className="fade-rise mb-6 flex items-center gap-3 font-body text-[11px] uppercase tracking-[0.35em] text-[#d9dde2]/80"
+            style={{ animationDelay: "200ms" }}
+          >
+            <span className="h-px w-10 bg-[#c8622b]" />
+            {slide.location}
           </p>
 
-          <a
-            href="#work"
-            className="group flex w-fit items-center gap-4 rounded-full bg-[#e9e1ff] px-6 py-4 text-xs font-medium text-black transition duration-300 hover:bg-white"
-          >
-            EXPLORE MY WORK
-            <span className="transition-transform group-hover:translate-x-1">↗</span>
-          </a>
-        </div>
-
-        <div className="mt-20 flex items-center justify-between border-t border-white/10 pt-6">
-          <div>
-            <p className="text-[9px] tracking-[0.25em] text-white/35">CURRENTLY EXPLORING</p>
-            <p className="mt-2 text-xs text-white/60">Code · Creativity · The unknown</p>
-          </div>
-          <a href="#about" className="text-xs text-white/40 transition hover:text-violet-300">
-            SCROLL TO DISCOVER ↓
-          </a>
-        </div>
-      </section>
-
-      {/* ABOUT */}
-      <section
-        id="about"
-        className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-32 lg:px-16"
-      >
-        <div className="mb-10 flex items-center gap-4 text-[10px] uppercase tracking-[0.25em] text-white/40">
-          <span className="text-violet-300">01</span>
-          <span className="h-px w-8 bg-violet-300/50" />
-          A LITTLE ABOUT ME
-        </div>
-
-        <div className="grid gap-12 md:grid-cols-2 md:gap-20">
-          <h2 className="text-4xl font-light leading-tight tracking-tight sm:text-6xl">
-            Curious mind.
-            <span className="mt-2 block text-white/35">
-              Creative soul.
-            </span>
-            <span className="mt-2 block bg-gradient-to-r from-violet-200 to-indigo-400 bg-clip-text text-transparent">
-              Infinite ideas.
-            </span>
-          </h2>
-
-          <div className="flex flex-col justify-end">
-            <p className="text-sm leading-8 text-white/55 sm:text-base">
-              I'm Sameer Shameem, passionate about building digital experiences
-              that combine technology and design. I love exploring new ideas,
-              experimenting with interfaces, and transforming simple concepts
-              into something memorable.
-            </p>
-
-            <div className="mt-7 flex flex-wrap gap-2">
-              {skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="rounded-full border border-white/10 px-4 py-2 text-[10px] text-white/60 transition hover:border-violet-300/40 hover:text-violet-200"
-                >
-                  {skill}
+          <h1 className="font-display font-bold uppercase leading-[0.92] tracking-tight text-[#e8eaed] text-[clamp(3.4rem,13vw,11.5rem)]">
+            {slide.lines.map((line, idx) => (
+              <span key={line} className="mask-line">
+                <span style={{ animationDelay: `${350 + idx * 170}ms` }}>
+                  {idx === slide.lines.length - 1 ? (
+                    <>
+                      {line}
+                      <span className="text-[#c8622b]">.</span>
+                    </>
+                  ) : (
+                    line
+                  )}
                 </span>
-              ))}
+              </span>
+            ))}
+          </h1>
+
+          <div
+            className="fade-rise mt-10 flex flex-wrap items-center gap-6"
+            style={{ animationDelay: "900ms" }}
+          >
+            <a
+              href="#tours"
+              className="group inline-flex items-center gap-4 rounded-full bg-[#c8622b] px-8 py-4 font-body text-[11px] font-medium uppercase tracking-[0.3em] text-white transition-all duration-500 hover:bg-[#d97338]"
+            >
+              Explore Tours
+              <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1.5">
+                →
+              </span>
+            </a>
+            <p className="font-body text-[11px] uppercase tracking-[0.3em] text-[#d9dde2]/60">
+              {slide.coords}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Slide indicators */}
+      <div
+        className="absolute bottom-24 right-6 z-20 flex flex-col items-end gap-5 md:bottom-20 md:right-12"
+        role="tablist"
+        aria-label="Hero slides"
+      >
+        {SLIDES.map((s, i) => {
+          const isActive = i === active;
+          return (
+            <button
+              key={s.location}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              aria-label={`Go to slide ${i + 1}: ${s.location}`}
+              onClick={() => goTo(i)}
+              className="group flex items-center gap-4"
+            >
+              <span
+                className={`font-display text-sm tracking-[0.25em] transition-colors duration-500 ${
+                  isActive ? "text-[#e8eaed]" : "text-[#d9dde2]/40 group-hover:text-[#d9dde2]/80"
+                }`}
+              >
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <span className="relative block h-px w-12 overflow-hidden bg-white/20 md:w-20">
+                {isActive && (
+                  <span
+                    key={`p-${active}`}
+                    className="progress-fill absolute inset-0 bg-[#c8622b]"
+                    style={reduced ? { animation: "none", transform: "scaleX(1)" } : undefined}
+                  />
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Scroll prompt */}
+      <a
+        href="#tours"
+        aria-label="Scroll to tours"
+        className="absolute bottom-6 left-1/2 z-20 hidden -translate-x-1/2 flex-col items-center gap-3 md:flex"
+      >
+        <span className="font-body text-[10px] uppercase tracking-[0.4em] text-[#d9dde2]/60">Scroll</span>
+        <span className="relative block h-10 w-px overflow-hidden bg-white/15">
+          <span className="scroll-line absolute inset-0 bg-[#d9dde2]" />
+        </span>
+      </a>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  POPULAR TOURS                                                      */
+/* ------------------------------------------------------------------ */
+
+function TourCard({ tour, index }) {
+  return (
+    <Reveal delay={index * 120}>
+      <article className="group relative aspect-[3/4] cursor-pointer overflow-hidden bg-[#141a21]">
+        <SmartImg
+          src={tour.image}
+          alt={tour.alt}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-[1600ms] ease-out group-hover:scale-110"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d10] via-[#0b0d10]/30 to-[#0b0d10]/20 transition-opacity duration-700 group-hover:opacity-90" />
+        <div className="absolute inset-0 bg-[#c8622b]/0 transition-colors duration-700 group-hover:bg-[#c8622b]/10" />
+
+        <span className="absolute left-6 top-6 font-display text-sm tracking-[0.3em] text-[#d9dde2]/80">
+          {tour.id}
+        </span>
+        <span className="absolute right-6 top-6 h-2 w-2 rounded-full bg-[#c8622b] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+        <div className="absolute inset-x-0 bottom-0 p-6 md:p-7">
+          <p className="mb-3 font-body text-[10px] uppercase tracking-[0.3em] text-[#d9dde2]/60">
+            {tour.tag}
+          </p>
+          <h3 className="font-display text-3xl font-semibold uppercase leading-none tracking-tight text-[#e8eaed] md:text-[2rem]">
+            {tour.title}
+          </h3>
+          <div className="grid grid-rows-[0fr] transition-all duration-700 ease-out group-hover:grid-rows-[1fr]">
+            <div className="overflow-hidden">
+              <p className="pt-4 font-body text-sm font-light leading-relaxed text-[#d9dde2]/80">
+                {tour.blurb}
+              </p>
+              <span className="mt-4 inline-flex items-center gap-3 font-body text-[10px] uppercase tracking-[0.3em] text-[#c8622b]">
+                View Journey <span aria-hidden="true">→</span>
+              </span>
             </div>
           </div>
         </div>
-      </section>
+      </article>
+    </Reveal>
+  );
+}
 
-      {/* PROJECTS */}
-      <section
-        id="work"
-        className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-32 lg:px-16"
-      >
-        <div className="mb-10 flex items-center gap-4 text-[10px] uppercase tracking-[0.25em] text-white/40">
-          <span className="text-violet-300">02</span>
-          <span className="h-px w-8 bg-violet-300/50" />
-          SELECTED PROJECTS
+function PopularTours() {
+  return (
+    <section id="tours" className="relative bg-[#0b0d10] px-6 py-28 md:px-12 md:py-40">
+      <div className="mx-auto max-w-[1500px]">
+        <div className="mb-16 flex flex-col justify-between gap-8 md:mb-24 md:flex-row md:items-end">
+          <Reveal>
+            <p className="mb-5 flex items-center gap-3 font-body text-[11px] uppercase tracking-[0.35em] text-[#c8622b]">
+              <span className="h-px w-10 bg-[#c8622b]" />
+              Popular Tours
+            </p>
+            <h2 className="font-display text-5xl font-bold uppercase leading-[0.95] tracking-tight text-[#e8eaed] md:text-7xl lg:text-8xl">
+              Four ways to
+              <br />
+              meet the city
+            </h2>
+          </Reveal>
+          <Reveal delay={150}>
+            <p className="max-w-sm font-body text-base font-light leading-relaxed text-[#d9dde2]/65">
+              Small groups, local guides and unhurried pacing. Each journey is built around a different
+              side of Mumbai, from colonial Fort to the midnight tea stalls of Bandra.
+            </p>
+          </Reveal>
         </div>
 
-        <div className="mb-12 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="text-4xl font-light tracking-tight sm:text-6xl">
-            A glimpse into
-            <span className="block text-violet-200">my universe.</span>
-          </h2>
-          <p className="max-w-xs text-sm leading-7 text-white/45">
-            Experiments, ideas, and digital experiences brought to life.
-          </p>
-        </div>
-
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {projects.map((project) => (
-            <a
-              href="#contact"
-              key={project.num}
-              className="group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.025] transition duration-500 hover:-translate-y-2 hover:border-violet-300/30"
-            >
-              <div
-                className={`relative flex aspect-[1.15/1] items-center justify-center overflow-hidden bg-gradient-to-br ${project.color}`}
-              >
-                <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:30px_30px]" />
-
-                <div className="absolute h-36 w-36 rounded-full bg-violet-500/20 blur-3xl transition duration-500 group-hover:bg-violet-400/40" />
-
-                <div className="relative flex h-32 w-32 items-center justify-center rounded-full border border-violet-200/30 bg-black/20 shadow-[0_0_70px_rgba(139,92,246,0.15)] transition duration-700 group-hover:rotate-12 group-hover:scale-110 sm:h-40 sm:w-40">
-                  <div className="absolute inset-3 rounded-full border border-white/10" />
-                  <span className="text-3xl font-extralight tracking-tight text-violet-100/90">
-                    {project.num}
-                  </span>
-                </div>
-
-                <span className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/20 transition group-hover:rotate-45 group-hover:bg-violet-200 group-hover:text-black">
-                  ↗
-                </span>
-              </div>
-
-              <div className="p-6">
-                <p className="mb-3 text-[9px] tracking-[0.2em] text-violet-300/70">
-                  {project.type}
-                </p>
-                <h3 className="text-xl font-light">{project.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/45">
-                  {project.description}
-                </p>
-                <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-4 text-xs text-white/50">
-                  <span>Discover project</span>
-                  <span className="transition group-hover:translate-x-1 group-hover:text-violet-200">→</span>
-                </div>
-              </div>
-            </a>
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {TOURS.map((t, i) => (
+            <TourCard key={t.id} tour={t} index={i} />
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
 
-        <p className="mt-6 text-xs text-white/30">
-          Replace these sample projects with your actual work.
-        </p>
-      </section>
+/* ------------------------------------------------------------------ */
+/*  ABOUT / IMMERSIVE STORY                                            */
+/* ------------------------------------------------------------------ */
 
-      {/* CONTACT */}
-      <section
-        id="contact"
-        className="relative z-10 mx-auto max-w-7xl px-6 py-24 sm:px-10 sm:py-32 lg:px-16"
-      >
-        <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-b from-violet-500/[0.09] to-white/[0.015] px-6 py-20 text-center sm:px-12 sm:py-28">
-          <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-96 -translate-x-1/2 rounded-full bg-violet-500/10 blur-[90px]" />
+function AboutSection() {
+  return (
+    <section
+      id="story"
+      className="relative flex min-h-[110vh] items-center overflow-hidden bg-[#0b0d10]"
+    >
+      <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-[#1e2832] to-[#0b0d10]">
+        <SmartImg
+          src={IMAGES.panorama}
+          alt="Panoramic view of Mumbai's coastline and skyline at golden hour"
+          className="drift h-full w-full object-cover"
+        />
+      </div>
 
-          <div className="relative">
-            <p className="mb-6 text-[10px] tracking-[0.28em] text-violet-200/70">
-              03 / LET'S CONNECT
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#0b0d10] via-[#0b0d10]/40 to-[#0b0d10]" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0b0d10]/85 via-[#0b0d10]/30 to-transparent" />
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(ellipse at 85% 80%, rgba(200,98,43,.18), transparent 55%)" }}
+      />
+      <div className="film-grain pointer-events-none absolute inset-0 opacity-50" />
+
+      <div className="relative z-10 mx-auto w-full max-w-[1500px] px-6 py-32 md:px-12">
+        <Reveal>
+          <p className="mb-8 flex items-center gap-3 font-body text-[11px] uppercase tracking-[0.35em] text-[#d9dde2]/70">
+            <span className="h-px w-10 bg-[#c8622b]" />
+            The Story
+          </p>
+        </Reveal>
+
+        <Reveal delay={100}>
+          <h2 className="font-display font-bold uppercase leading-[0.9] tracking-tight text-[#e8eaed] text-[clamp(2.8rem,10vw,9.5rem)]">
+            More than a
+            <br />
+            destination.
+            <br />
+            <span className="outline-text">A feeling.</span>
+          </h2>
+        </Reveal>
+
+        <div className="mt-14 grid gap-10 md:grid-cols-12">
+          <Reveal delay={250} className="md:col-span-5 md:col-start-1">
+            <p className="font-body text-lg font-light leading-relaxed text-[#d9dde2]/75">
+              Mumbai isn't ticked off a list. It's the sea breeze at Marine Drive at six in the evening,
+              the clatter of a local train, the smell of rain on warm stone. Stay long enough and the
+              city stops being somewhere you visit and becomes something you carry home.
             </p>
-
-            <h2 className="text-4xl font-light leading-tight tracking-tight sm:text-6xl lg:text-7xl">
-              Have an idea?
-              <span className="mt-2 block bg-gradient-to-r from-violet-200 to-indigo-400 bg-clip-text text-transparent">
-                Let's create it.
-              </span>
-            </h2>
-
-            <p className="mx-auto mt-6 max-w-md text-sm leading-7 text-white/50">
-              Every great project starts with a conversation. Let's build
-              something extraordinary together.
-            </p>
-
-            {/* CHANGE THIS TO YOUR EMAIL */}
             <a
-              href="mailto:your-email@example.com"
-              className="mt-9 inline-flex items-center gap-4 rounded-full bg-white px-7 py-4 text-xs font-medium text-black transition hover:bg-violet-200"
+              href="#contact"
+              className="group mt-10 inline-flex items-center gap-4 border-b border-[#c8622b] pb-2 font-body text-[11px] uppercase tracking-[0.3em] text-[#e8eaed] transition-colors duration-500 hover:text-[#c8622b]"
             >
-              SAY HELLO <span>↗</span>
+              Begin your story
+              <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1.5">
+                →
+              </span>
             </a>
-          </div>
+          </Reveal>
         </div>
-      </section>
+      </div>
+    </section>
+  );
+}
 
-      {/* FOOTER */}
-      <footer className="relative z-10 mx-auto flex max-w-7xl flex-col gap-5 border-t border-white/10 px-6 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-16">
-        <a href="#home" className="text-xs tracking-[0.18em] text-white/70">
-          SAMEER SHAMEEM<span className="text-violet-300">.</span>
+/* ------------------------------------------------------------------ */
+/*  CONTACT                                                            */
+/* ------------------------------------------------------------------ */
+
+function ContactSection() {
+  return (
+    <section
+      id="contact"
+      className="relative flex min-h-[90vh] items-center justify-center overflow-hidden bg-[#0b0d10] px-6 py-32 text-center"
+    >
+      <div
+        className="ambient pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 30% 40%, rgba(30,40,50,.9), transparent 60%), radial-gradient(ellipse at 75% 70%, rgba(200,98,43,.16), transparent 55%)",
+        }}
+      />
+      <div className="film-grain pointer-events-none absolute inset-0 opacity-50" />
+
+      <div className="relative z-10 mx-auto max-w-5xl">
+        <Reveal>
+          <p className="mb-8 font-body text-[11px] uppercase tracking-[0.4em] text-[#c8622b]">
+            Plan your journey
+          </p>
+        </Reveal>
+        <Reveal delay={100}>
+          <h2 className="font-display font-bold uppercase leading-[0.92] tracking-tight text-[#e8eaed] text-[clamp(3rem,11vw,10rem)]">
+            The city is
+            <br />
+            calling<span className="text-[#c8622b]">.</span>
+          </h2>
+        </Reveal>
+        <Reveal delay={220}>
+          <p className="mx-auto mt-10 max-w-md font-body text-base font-light leading-relaxed text-[#d9dde2]/65">
+            Tell us when you're arriving and what you're hungry for. We'll shape the rest, from the
+            first sunrise on the seafront to the last cup of chai.
+          </p>
+        </Reveal>
+        <Reveal delay={340}>
+          <a
+            href="mailto:hello@roam.travel?subject=Planning%20my%20Mumbai%20journey"
+            className="group mt-12 inline-flex items-center gap-4 rounded-full bg-[#c8622b] px-10 py-5 font-body text-[11px] font-medium uppercase tracking-[0.3em] text-white transition-all duration-500 hover:bg-[#d97338]"
+          >
+            Get in touch
+            <span aria-hidden="true" className="transition-transform duration-500 group-hover:translate-x-1.5">
+              →
+            </span>
+          </a>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  FOOTER                                                             */
+/* ------------------------------------------------------------------ */
+
+function Footer() {
+  return (
+    <footer className="border-t border-white/5 bg-[#0b0d10] px-6 py-10 md:px-12">
+      <div className="mx-auto flex max-w-[1500px] flex-col items-center justify-between gap-6 sm:flex-row">
+        <a href="#top" className="flex items-center gap-3" aria-label="ROAM home">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#c8622b]" />
+          <span className="font-display text-sm font-medium tracking-[0.35em] text-[#d9dde2]">ROAM</span>
         </a>
-
-        <p className="text-[10px] text-white/35">
-          Designed among the stars © 2026
+        <p className="font-body text-xs font-light tracking-wide text-[#d9dde2]/45">
+          © {new Date().getFullYear()} ROAM Travel Co. All rights reserved.
         </p>
-
-        <a href="#home" className="text-xs text-white/50 transition hover:text-violet-200">
-          BACK TO TOP ↑
+        <a
+          href="#top"
+          className="font-body text-[10px] uppercase tracking-[0.3em] text-[#d9dde2]/60 transition-colors duration-300 hover:text-[#c8622b]"
+        >
+          Back to top ↑
         </a>
-      </footer>
-    </main>
+      </div>
+    </footer>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  PAGE                                                               */
+/* ------------------------------------------------------------------ */
+
+export default function Home() {
+  return (
+    <div className="font-body min-h-screen bg-[#0b0d10] text-[#d9dde2] antialiased selection:bg-[#c8622b] selection:text-white">
+      <style>{css}</style>
+      <Navigation />
+      <main>
+        <Hero />
+        <PopularTours />
+        <AboutSection />
+        <ContactSection />
+      </main>
+      <Footer />
+    </div>
   );
 }
